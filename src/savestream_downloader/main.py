@@ -4,7 +4,7 @@ import logging
 import tempfile
 import zipfile
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, BinaryIO
+from typing import AsyncIterator
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .config import Settings
-from .models import HealthResponse, MediaAsset, ResolveRequest, ResolveResponse, ResolvedMedia
+from .models import HealthResponse, MediaAsset, ResolvedMedia, ResolveRequest, ResolveResponse
 from .orchestrator import AllProvidersFailed, DownloaderOrchestrator
 from .providers.cobalt import CobaltProvider
 from .providers.dtk import DtkProvider
@@ -330,7 +330,7 @@ def _unique_archive_name(filename: str, used: set[str], index: int) -> str:
     return candidate
 
 
-async def _build_photo_archive(media: ResolvedMedia) -> tuple[BinaryIO, int]:
+async def _build_photo_archive(media: ResolvedMedia) -> tuple[tempfile.SpooledTemporaryFile[bytes], int]:
     if media.media_type != "photo_carousel" or not media.assets:
         raise HTTPException(status_code=409, detail="This TikTok post is not a photo carousel")
 
@@ -375,7 +375,7 @@ async def _build_photo_archive(media: ResolvedMedia) -> tuple[BinaryIO, int]:
 
 async def _build_archive_with_refresh(
     request_id: str, media: ResolvedMedia, service: DownloaderService
-) -> tuple[ResolvedMedia, BinaryIO, int]:
+) -> tuple[ResolvedMedia, tempfile.SpooledTemporaryFile[bytes], int]:
     try:
         archive, size = await _build_photo_archive(media)
         return media, archive, size

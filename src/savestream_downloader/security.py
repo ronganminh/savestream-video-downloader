@@ -10,7 +10,6 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from .config import Settings
 
-
 _ALLOWED_TIKTOK_HOSTS = {
     "tiktok.com",
     "www.tiktok.com",
