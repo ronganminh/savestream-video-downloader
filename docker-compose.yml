@@ -1,0 +1,47 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      cobalt:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8787:8787"
+    networks:
+      - downloader
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - downloader
+
+  cobalt:
+    image: ghcr.io/imputnet/cobalt:11
+    init: true
+    read_only: true
+    restart: unless-stopped
+    environment:
+      API_URL: "http://cobalt:9000/"
+      API_PORT: "9000"
+      API_LISTEN_ADDRESS: "0.0.0.0"
+      RATELIMIT_MAX: "120"
+      TUNNEL_RATELIMIT_MAX: "240"
+    expose:
+      - "9000"
+    networks:
+      - downloader
+
+networks:
+  downloader:
+    driver: bridge
